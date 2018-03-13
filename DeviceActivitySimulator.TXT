@@ -25,6 +25,10 @@ var
     cumulativeProb,
     devAction;
 
+    //add for two lists
+    EventListActive;
+    CPListActive;
+
 procedure addProbability;
 begin
     cumProbTemp := 0.0;
@@ -65,6 +69,13 @@ begin
    cumulativeProb := [0.0,0.0,0.0,0.0,0.0,0.0,0.0];
    addProbability;
    Command.SendToLog('Hello');
+    
+   CPListActive := TStringList.Create;
+   EventListActive := TString.Create;
+   
+
+
+
 end;
 
 
@@ -83,13 +94,14 @@ begin
   Command.SendToLog (Format ('Received callpoint notify event. EvtType:%s / EventID:%s / DevInfo:%s / CpInfo:%s',
         [EvtType, EventID, DevInfo, CpInfo]));
 
+  devId := Command.GetRxDataParamInteger ('[DEV_ID=', DevInfo, 0);
+  devType := Command.GetRxDataParamInteger ('[TYPE=', DevInfo, 0);
+  devLabel := Command.GetRxDataParamString ('[LABEL=', DevInfo, '<DEV LABEL NOT FOUND>');
 
   CpIsActive := (EvtType = 'ACTIVE');
   if CpIsActive then
   begin
-       devId := Command.GetRxDataParamInteger ('[DEV_ID=', DevInfo, 0);
-       devType := Command.GetRxDataParamInteger ('[TYPE=', DevInfo, 0);
-       devLabel := Command.GetRxDataParamString ('[LABEL=', DevInfo, '<DEV LABEL NOT FOUND>');
+       
 
        randomNumber := Command.GetRandomInteger(0,101);
        temporary := countIf(randomNumber) + 1;

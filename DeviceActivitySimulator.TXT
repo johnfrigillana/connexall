@@ -33,14 +33,45 @@ var
 
 
 // input current Callpoint Status, return Device Activity base on algorithm
+
+// things to consider:
+// 1. If CP Level = 3, you cannot escalate it anymore
+// 2. You cannot cancel Code Blue without ACK ( or any alarm with Priority 0~ 10)
+// 3. since we have this function run every second, or 1~5 seconds, we
+//    need a large probably set as "Do Nothing" so we can make a delay
+
+
+// For now, Probailities set as:
+// ( the following prob is actually pretty high, the lowest priority (0.2% ack) will be more
+//   likely to acked in 2 minutes), because the probabilities are applied each second
+
+// 1. Priority 0 ~ 10: 50% +- 10% ACK;
+// 2. Priority 11 ~ 20: 40% +- 10% ACK;
+// 3. Priority 21 ~ 30: 30% +- 10% ACK;
+// 4. Priority 31 ~ 40: 20% +- 10% ACK;
+// 5. Priority 41 ~ 50: 10% +- 5% ACK;
+// 6. Priority 51 ~ 60: 5% +- 3% ACK;
+// 7. Priority 61 ~ 70: 2% +- 1% ACK;
+// 8. Priority 71 ~ 80: 1% +- 0.5% ACK;
+// 9. Priority 81 ~ 999: 0.5% +- 0.3% ACK
+
 procedure get_DevActivity;
+begin
+
+
+
+end;
+
+
+procedure get_priority(Priority: Integer);
 begin
 end;
 
 
 
 
-procedure addProbability;
+
+procedure addProbability;                                 
 begin
     cumProbTemp := 0.0;
     arraySize := sizeOfList - 1;
@@ -76,6 +107,7 @@ end;
 
 
 procedure InitializeScript;
+
 begin
   //Implement any required initialization code here that should be executed when the script is first run.
   //Example: preset variables, start the timer, etc.
@@ -84,8 +116,8 @@ begin
    Command.SendToLog('Hello');
     
    CPListActive := TStringList.Create;
-   EventListActive := TString.Create;
-   
+   EventListActive := TStringList.Create;
+
 
 
 

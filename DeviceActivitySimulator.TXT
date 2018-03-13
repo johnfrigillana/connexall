@@ -129,8 +129,13 @@ begin
             // since you made a probably of NOT trigger the alarm, so this made a
             // conflict with my code below .
 
+            // ALSO note there is a bug in my code here:
+            // If callpoint is a re-try or escalation, is will add duplicate callpoints
+            // in the list, so leave this here for now, I need a if statement ...
+
             //CPListActive.Append(CpInfo);
             //EventListActive.Append(EventID);
+
 
             randomNumber := Command.GetRandomInteger(0,101);
             temporary := countIf(randomNumber) + 1;

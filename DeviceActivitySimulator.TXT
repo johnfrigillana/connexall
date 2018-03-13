@@ -162,11 +162,8 @@ begin
    Command.SendToLog('Hello');
 
    CPListActive := TStringList.Create;
-<<<<<<< HEAD
-   EventListActive := TString.Create;
-=======
-   EventListActive := TStringList.Create;
->>>>>>> 1287a94fb05386fd7b0d8bd30201ce35840cf845
+   EventListActive := TStringList.Create; 
+
 
 
 

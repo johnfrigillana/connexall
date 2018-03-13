@@ -62,10 +62,56 @@ begin
 
 end;
 
+// return Priority number based on:
+// 1 --> Priority 0 ~ 10
+// 2 --> Priority 11 ~ 20
+// 3 --> Priority 21 ~ 30
+// 4 --> Priority 31 ~ 40
+// 5 --> Priority 41 ~ 50         
+// 6 --> Priority 51 ~ 60
+// 7 --> Priority 61 ~ 70
+// 8 --> Priority 71 ~ 80
+// 9 --> Priority 81 ~ 999
 
-procedure get_priority(Priority: Integer);
+function get_priority(Priority:Integer):Integer;
 begin
+    if (Priority > 80) then
+        begin
+            Result := 9;
+            //Exit(9);
+        end;
+
+    else if (Priority mod 10) = 0 then
+        begin
+        //the number is 0, 10, 20, 30...
+            if (Priority = 0) then
+                begin
+                    Result := 1;
+                    //Exit(1);
+                end
+            else 
+                begin
+                    //Exit(Priority div 10);
+                    Result := Priority div 10;
+                end;
+        end
+    else  
+        begin
+            if (Priority < 10) then
+                begin
+                    //
+                    //writeln('Hello, worrld!');
+                    Result := 1;
+                    //Exit(1)
+                end
+            else
+                begin
+                    //Exit((Priority div 10) + 1);
+                    Result := (Priority div 10) + 1;
+                end;
+        end;
 end;
+
 
 
 

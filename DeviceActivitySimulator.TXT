@@ -17,7 +17,7 @@ uses SysUtils;
           14.2]; //   Probability that did not respond at all
   sizeOfList = 7;
 
-
+//test line
 var
     devId,
     devType,

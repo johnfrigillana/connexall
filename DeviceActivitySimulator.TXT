@@ -82,10 +82,10 @@ begin
    cumulativeProb := [0.0,0.0,0.0,0.0,0.0,0.0,0.0];
    addProbability;
    Command.SendToLog('Hello');
-    
+
    CPListActive := TStringList.Create;
    EventListActive := TString.Create;
-   
+
 
 
 
@@ -112,12 +112,6 @@ begin
     devId := Command.GetRxDataParamInteger ('[DEV_ID=', DevInfo, 0);
     devType := Command.GetRxDataParamInteger ('[TYPE=', DevInfo, 0);
     devLabel := Command.GetRxDataParamString ('[LABEL=', DevInfo, '<DEV LABEL NOT FOUND>');
-
-
-
-    // just use EvtType in if statement....
-    CpIsActive := (EvtType = 'ACTIVE');
-
 
     if EvtType = 'ACTIVE' then
 

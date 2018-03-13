@@ -21,7 +21,7 @@ const
 
 //test line
 var
-    devId,
+    devId,          
     devType,
     devLabel;
     cumulativeProb,
@@ -30,6 +30,9 @@ var
     //add for two lists
     EventListActive;
     CPListActive;
+
+    // add a list containes all ACKED Callpoint IDs
+    CPListAcked;
 
 
 // input current Callpoint Status, return Device Activity base on algorithm
@@ -62,6 +65,7 @@ begin
 
 end;
 
+
 // return Priority number based on:
 // 1 --> Priority 0 ~ 10
 // 2 --> Priority 11 ~ 20
@@ -72,7 +76,6 @@ end;
 // 7 --> Priority 61 ~ 70
 // 8 --> Priority 71 ~ 80
 // 9 --> Priority 81 ~ 999
-
 function get_priority(Priority:Integer):Integer;
 begin
     if (Priority > 80) then
@@ -114,10 +117,22 @@ end;
 
 
 
+// are you kding me T T.... there is no info about if a Callpoint has been asked or not..
+// so the only way for us is to reord/check by ourself :(
+// check if a Callpoint is asked
+function check_acked(CPid:Integer):bool;
+begin
+    // loop through list CPListAcked
+    for loopCount := 0 to CPListAcked.count do
+        begin
+            // if CPid find in CPListAcked, return True
+        end;
+
+    Result := False;
+end;
 
 
-
-procedure addProbability;                                 
+procedure addProbability;
 begin
     cumProbTemp := 0.0;
     arraySize := sizeOfList - 1;
@@ -164,6 +179,8 @@ begin
    CPListActive := TStringList.Create;
    EventListActive := TStringList.Create; 
 
+   // create a list with all acked CPs
+   CPListAcked := TStringList.Create;
 
 
 

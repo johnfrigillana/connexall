@@ -1,0 +1,142 @@
+uses SysUtils;
+
+  codes = [1,  //   1 = user saw message and terminated ("done")
+           2,  //   2 = user saw message and chose to call audio dn
+           3,  //   3 = user saw message and chose to escalate it
+           4,  //   4 = user responded to notification but has not chosen an option yet ("user aware")
+           5,  //   5 = user chose a custom menu option
+           6,  //  6 = user saw message and chose to cancel it
+           1000]; // 1000 = user did not respond at all
+
+  prob = [14.3,  //  Probability that user saw message and terminated ("done")
+          14.3,  //  Probability that user saw message and chose to call audio dn
+          14.3,  //  Probability that user saw message and chose to escalate it
+          14.3,  //  Probability that user responded to notification but has not chosen an option yet ("user aware")
+          14.3,  //  Probability that user chose a custom menu option
+          14.3,   //  Probability that user saw message and chose to cancel it
+          14.2]; //   Probability that did not respond at all
+  sizeOfList = 7;
+
+
+var
+    devId,
+    devType,
+    devLabel;
+    cumulativeProb,
+    devAction;
+
+procedure addProbability;
+begin
+    cumProbTemp := 0.0;
+    arraySize := sizeOfList - 1;
+    for loopCount := 0 to arraySize do
+    begin
+       cumProbTemp := cumProbTemp + prob[loopCount];
+       cumulativeProb[loopCount] := cumProbTemp;
+      // Command.SendToLog(FloatToStr(cumulativeProb[loopCount]));
+    end;
+end;
+
+function countIf(number : Integer): Integer;
+begin
+    tempAns := 0;
+    arraySize := sizeOfList - 1;
+    for loopCount := 0 to arraySize do
+    begin
+       if cumulativeProb[loopCount] <= number then
+       begin
+           tempAns := tempAns + 1
+       end;
+    end;
+    Result:= tempAns;
+end;
+
+function HandleNewPacket (RxData);
+begin
+  //Implement code to parse/process incoming data from host system.
+
+  Command.SendToLog ('Got raw data: ' + RxData);
+end;
+
+procedure InitializeScript;
+begin
+  //Implement any required initialization code here that should be executed when the script is first run.
+  //Example: preset variables, start the timer, etc.
+   cumulativeProb := [0.0,0.0,0.0,0.0,0.0,0.0,0.0];
+   addProbability;
+   Command.SendToLog('Hello');
+end;
+
+
+procedure FinalizeScript;
+begin
+  //Implement any required finalization code here that should be executed when the script stops running.
+  //Example: clean memory, free objects, etc.
+end;
+
+
+function HandleDevNotify (ExtractedNativeDevID, EvtType, EventID, DevInfo, CpInfo);
+
+begin
+
+//Begin Script
+  Command.SendToLog (Format ('Received callpoint notify event. EvtType:%s / EventID:%s / DevInfo:%s / CpInfo:%s',
+        [EvtType, EventID, DevInfo, CpInfo]));
+
+
+  CpIsActive := (EvtType = 'ACTIVE');
+  if CpIsActive then
+  begin
+       devId := Command.GetRxDataParamInteger ('[DEV_ID=', DevInfo, 0);
+       devType := Command.GetRxDataParamInteger ('[TYPE=', DevInfo, 0);
+       devLabel := Command.GetRxDataParamString ('[LABEL=', DevInfo, '<DEV LABEL NOT FOUND>');
+
+       randomNumber := Command.GetRandomInteger(0,101);
+       temporary := countIf(randomNumber) + 1;
+       devAction := codes[temporary - 1];
+       if devAction <> 1000 then
+       begin
+       Command.SendDevNotifyStatusToServer (EventID,
+                                           devId,
+                                           devType,
+                                           devLabel,
+                                           devAction,
+                                           '');
+       end;
+  end;
+
+  //Note: HandleDevNotify is a function, so a True/False "return value" should be specified to signify the success/failure to process the notification.
+    //Result := False; //the client will send a device status message to the server of "Host Offline" (i.e. status code = -3)
+    Result := True; //the client will send a device status message to the server of "Host Accepted Message" (i.e. status code = 10)
+
+  //Option to enable/disable the HandleDevNotify messages for optional flow control (enabled by default)
+    {Parameter list:
+      - enable/disable messages (True/False)}
+    //Command.ReadyForDevNotifyEvents (False);
+    Command.ReadyForDevNotifyEvents (True);
+
+  //Option to enable/disable the processing of HandleDevNotify messages (and Timer) events even when the host interface is offline (disabled by default)
+    {Parameter list:
+      - enable/disable script operation when host offline (True/False)}
+   //Command.RunWhileHostOffline (True);
+    Command.RunWhileHostOffline (False);
+end;
+
+
+procedure HandleRtlsTagLocationChange (TagID: integer; TagLabel: string; TagNativeID: string;
+  RTLSID: integer; NewLocID, NewLocLabel, PrevLocID, PrevLocLabel: string; PrevLocEntryTime: TDateTime);
+begin
+  // Implement code that can process RTLS tag location change events
+end;
+
+
+procedure TimerEvent;
+begin
+  //Implement code that must be called on a regular basis (for state machines, etc.)
+  //Note: refer to Command.EnableTimer, Command.DisableTimer and Command.RunWhileHostOffline procedures to enable/disable timer events.
+end;
+
+
+
+
+

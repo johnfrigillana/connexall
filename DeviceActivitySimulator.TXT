@@ -1,21 +1,23 @@
 uses SysUtils;
 
-  codes = [1,  //   1 = user saw message and terminated ("done")
-           2,  //   2 = user saw message and chose to call audio dn
-           3,  //   3 = user saw message and chose to escalate it
-           4,  //   4 = user responded to notification but has not chosen an option yet ("user aware")
-           5,  //   5 = user chose a custom menu option
-           6,  //  6 = user saw message and chose to cancel it
-           1000]; // 1000 = user did not respond at all
+const
 
-  prob = [14.3,  //  Probability that user saw message and terminated ("done")
-          14.3,  //  Probability that user saw message and chose to call audio dn
-          14.3,  //  Probability that user saw message and chose to escalate it
-          14.3,  //  Probability that user responded to notification but has not chosen an option yet ("user aware")
-          14.3,  //  Probability that user chose a custom menu option
-          14.3,   //  Probability that user saw message and chose to cancel it
-          14.2]; //   Probability that did not respond at all
-  sizeOfList = 7;
+    codes = [1,  //   1 = user saw message and terminated ("done")
+             2,  //   2 = user saw message and chose to call audio dn
+             3,  //   3 = user saw message and chose to escalate it
+             4,  //   4 = user responded to notification but has not chosen an option yet ("user aware")
+             5,  //   5 = user chose a custom menu option
+             6,  //  6 = user saw message and chose to cancel it
+             1000]; // 1000 = user did not respond at all
+
+    prob = [14.3,  //  Probability that user saw message and terminated ("done")
+            14.3,  //  Probability that user saw message and chose to call audio dn
+            14.3,  //  Probability that user saw message and chose to escalate it
+            14.3,  //  Probability that user responded to notification but has not chosen an option yet ("user aware")
+            14.3,  //  Probability that user chose a custom menu option
+            14.3,   //  Probability that user saw message and chose to cancel it
+            14.2]; //   Probability that did not respond at all
+    sizeOfList = 7;
 
 //test line
 var
@@ -28,6 +30,15 @@ var
     //add for two lists
     EventListActive;
     CPListActive;
+
+
+// input current Callpoint Status, return Device Activity base on algorithm
+procedure get_DevActivity;
+begin
+end;
+
+
+
 
 procedure addProbability;
 begin
@@ -62,6 +73,8 @@ begin
   Command.SendToLog ('Got raw data: ' + RxData);
 end;
 
+
+
 procedure InitializeScript;
 begin
   //Implement any required initialization code here that should be executed when the script is first run.
@@ -90,32 +103,61 @@ function HandleDevNotify (ExtractedNativeDevID, EvtType, EventID, DevInfo, CpInf
 
 begin
 
+
+
 //Begin Script
-  Command.SendToLog (Format ('Received callpoint notify event. EvtType:%s / EventID:%s / DevInfo:%s / CpInfo:%s',
+    Command.SendToLog (Format ('Received callpoint notify event. EvtType:%s / EventID:%s / DevInfo:%s / CpInfo:%s',
         [EvtType, EventID, DevInfo, CpInfo]));
 
-  devId := Command.GetRxDataParamInteger ('[DEV_ID=', DevInfo, 0);
-  devType := Command.GetRxDataParamInteger ('[TYPE=', DevInfo, 0);
-  devLabel := Command.GetRxDataParamString ('[LABEL=', DevInfo, '<DEV LABEL NOT FOUND>');
+    devId := Command.GetRxDataParamInteger ('[DEV_ID=', DevInfo, 0);
+    devType := Command.GetRxDataParamInteger ('[TYPE=', DevInfo, 0);
+    devLabel := Command.GetRxDataParamString ('[LABEL=', DevInfo, '<DEV LABEL NOT FOUND>');
 
-  CpIsActive := (EvtType = 'ACTIVE');
-  if CpIsActive then
-  begin
-       
 
-       randomNumber := Command.GetRandomInteger(0,101);
-       temporary := countIf(randomNumber) + 1;
-       devAction := codes[temporary - 1];
-       if devAction <> 1000 then
-       begin
-       Command.SendDevNotifyStatusToServer (EventID,
+
+    // just use EvtType in if statement....
+    CpIsActive := (EvtType = 'ACTIVE');
+
+
+    if EvtType = 'ACTIVE' then
+
+        begin
+
+            // my idea is different here.  so I will make this commanded out.
+            Command.SendToLog('Received Active Event type');
+
+            // since you made a probably of NOT trigger the alarm, so this made a
+            // conflict with my code below .
+
+            //CPListActive.Append(CpInfo);
+            //EventListActive.Append(EventID);
+
+            randomNumber := Command.GetRandomInteger(0,101);
+            temporary := countIf(randomNumber) + 1;
+            devAction := codes[temporary - 1];
+            if devAction <> 1000 then
+                begin
+                Command.SendDevNotifyStatusToServer (EventID,
                                            devId,
                                            devType,
                                            devLabel,
                                            devAction,
                                            '');
-       end;
-  end;
+                end;
+        end;
+
+    else if EvtType = 'CANCEL' then
+        begin
+            Command.SendToLog('Received Cancel Event type');
+
+            // command out for now due to potential bug
+            //Index := EventListActive.Indexof(EventID);
+            //CPListActive.Delete(Index);
+        end;
+
+
+
+
 
   //Note: HandleDevNotify is a function, so a True/False "return value" should be specified to signify the success/failure to process the notification.
     //Result := False; //the client will send a device status message to the server of "Host Offline" (i.e. status code = -3)
@@ -132,6 +174,8 @@ begin
       - enable/disable script operation when host offline (True/False)}
    //Command.RunWhileHostOffline (True);
     Command.RunWhileHostOffline (False);
+
+
 end;
 
 
@@ -147,7 +191,6 @@ begin
   //Implement code that must be called on a regular basis (for state machines, etc.)
   //Note: refer to Command.EnableTimer, Command.DisableTimer and Command.RunWhileHostOffline procedures to enable/disable timer events.
 end;
-
 
 
 

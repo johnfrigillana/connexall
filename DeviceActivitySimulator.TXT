@@ -1,4 +1,7 @@
-uses SysUtils;
+
+uses
+    SysUtils,
+    Classes;
 
 const
 
@@ -19,6 +22,31 @@ const
             14.2]; //   Probability that did not respond at all
     sizeOfList = 7;
 
+
+    // 1. Priority 0 ~ 10: 50% +- 10% ACK;
+    // 2. Priority 11 ~ 20: 40% +- 10% ACK;
+    // 3. Priority 21 ~ 30: 30% +- 10% ACK;
+    // 4. Priority 31 ~ 40: 20% +- 10% ACK;
+    // 5. Priority 41 ~ 50: 10% +- 5% ACK;
+    // 6. Priority 51 ~ 60: 5% +- 3% ACK;
+    // 7. Priority 61 ~ 70: 2% +- 1% ACK;
+    // 8. Priority 71 ~ 80: 1% +- 0.5% ACK;
+    // 9. Priority 81 ~ 999: 0.5% +- 0.3% ACK
+
+    // format: [min, max]
+    Prob1 = [0.4, 0.6];
+    Prob2 = [0.3, 0.5];
+    Prob3 = [0.2, 0.4];
+    Prob4 = [0.1, 0.3];
+    Prob5 = [0.05, 0.15];
+    Prob6 = [0.02, 0.08];
+    Prob7 = [0.01, 0.03];
+    Prob8 = [0.005, 0.015];
+    Prob9 = [0.002, 0.008];
+
+    Probability_list = [Prob1, Prob2, Prob3, Prob4, Prob5,
+                        Prob6, Prob7, Prob8, Prob9]
+
 //test line
 var
     devId,          
@@ -31,47 +59,13 @@ var
     EventListActive;
     CPListActive;
 
-    // add a list containes all ACKED Callpoint IDs
-    CPListAcked;
-
-
-// input current Callpoint Status, return Device Activity base on algorithm
-
-// things to consider:
-// 1. If CP Level = 3, you cannot escalate it anymore
-// 2. You cannot cancel Code Blue without ACK ( or any alarm with Priority 0~ 10)
-// 3. since we have this function run every second, or 1~5 seconds, we
-//    need a large probably set as "Do Nothing" so we can make a delay
-
-
-// For now, Probailities set as:
-// ( the following prob is actually pretty high, the lowest priority (0.2% ack) will be more
-//   likely to acked in 2 minutes), because the probabilities are applied each second
-
-// 1. Priority 0 ~ 10: 50% +- 10% ACK;
-// 2. Priority 11 ~ 20: 40% +- 10% ACK;
-// 3. Priority 21 ~ 30: 30% +- 10% ACK;
-// 4. Priority 31 ~ 40: 20% +- 10% ACK;
-// 5. Priority 41 ~ 50: 10% +- 5% ACK;
-// 6. Priority 51 ~ 60: 5% +- 3% ACK;
-// 7. Priority 61 ~ 70: 2% +- 1% ACK;
-// 8. Priority 71 ~ 80: 1% +- 0.5% ACK;
-// 9. Priority 81 ~ 999: 0.5% +- 0.3% ACK
-
-procedure get_DevActivity;
-begin
-
-
-
-end;
-
 
 // return Priority number based on:
 // 1 --> Priority 0 ~ 10
 // 2 --> Priority 11 ~ 20
 // 3 --> Priority 21 ~ 30
 // 4 --> Priority 31 ~ 40
-// 5 --> Priority 41 ~ 50         
+// 5 --> Priority 41 ~ 50
 // 6 --> Priority 51 ~ 60
 // 7 --> Priority 61 ~ 70
 // 8 --> Priority 71 ~ 80
@@ -92,7 +86,7 @@ begin
                     Result := 1;
                     //Exit(1);
                 end
-            else 
+            else
                 begin
                     //Exit(Priority div 10);
                     Result := Priority div 10;
@@ -117,19 +111,71 @@ end;
 
 
 
-// are you kding me T T.... there is no info about if a Callpoint has been asked or not..
-// so the only way for us is to reord/check by ourself :(
-// check if a Callpoint is asked
-function check_acked(CPid:Integer):bool;
+
+// input current Callpoint Status, return Device Activity base on algorithm
+
+// things to consider:
+// 1. If CP Level = 3, you cannot escalate it anymore
+// 2. You cannot cancel Code Blue without ACK ( or any alarm with Priority 0~ 10)
+// 3. since we have this function run every second, or 1~5 seconds, we
+//    need a large probably set as "Do Nothing" so we can make a delay
+
+
+// For now, Probailities set as:
+// ( the following prob is actually pretty high, the lowest priority (0.2% ack) will be more
+//   likely to acked in 2 minutes), because the probabilities are applied each second
+
+// 1. Priority 0 ~ 10: 50% +- 10% ACK;
+// 2. Priority 11 ~ 20: 40% +- 10% ACK;
+// 3. Priority 21 ~ 30: 30% +- 10% ACK;
+// 4. Priority 31 ~ 40: 20% +- 10% ACK;
+// 5. Priority 41 ~ 50: 10% +- 5% ACK;
+// 6. Priority 51 ~ 60: 5% +- 3% ACK;
+// 7. Priority 61 ~ 70: 2% +- 1% ACK;
+// 8. Priority 71 ~ 80: 1% +- 0.5% ACK;
+// 9. Priority 81 ~ 999: 0.5% +- 0.3% ACK
+function get_DevActivity(CpInfo: String):Integer;
+var Priority:integer;
+var Ack_min: integer;
+var Ack_max: integer;
+var Random_AckProb: integer;
+var Not_AckProb:integer;
 begin
-    // loop through list CPListAcked
-    for loopCount := 0 to CPListAcked.count do
+
+    // get Cp Priority
+    Priority := get_priority(Command.GetRxDataParamInteger ('[PRIORITY=', CpInfo, 0));
+
+    // get the max and min probability of ack
+    Ack_min := Probability_list[Priority - 1][0]; // we use Priority - 1 for the index
+    Ack_max := Probability_list[Priority - 1][1];
+
+    // get the probability of ack and not ack
+    Random_AckProb := Command.GetRandomInteger(Ack_min * 100, Ack_max * 100);
+    Not_AckProb := 100 - Random_AckProb;
+
+    //apply the above probability, determine if we ack this callpoint or not..
+    Random_number := Command.GetRandomInteger(0, 100);
+    if Random_number < Random_AckProb then
         begin
-            // if CPid find in CPListAcked, return True
+        Result := 1;
+        end;
+    else
+        begin
+        // Callpoint will not ack at this time, apply other device activities
+        // apply 50% of do nothing
+        Random_number := Command.GetRandomInteger(0, 100);
+        if Random_number <= 50 then
+            begin
+            Result := 1000; // do nothing
+            end;
+        else
+            begin
+            Result := Command.GetRandomInteger(2, 7); // since this might means 2 - 6 (inclusive)
+            end;
         end;
 
-    Result := False;
 end;
+
 
 
 procedure addProbability;
@@ -168,24 +214,47 @@ end;
 
 
 procedure InitializeScript;
-
 begin
   //Implement any required initialization code here that should be executed when the script is first run.
   //Example: preset variables, start the timer, etc.
-   cumulativeProb := [0.0,0.0,0.0,0.0,0.0,0.0,0.0];
-   addProbability;
-   Command.SendToLog('Hello');
 
-   CPListActive := TStringList.Create;
-   EventListActive := TStringList.Create; 
+  //CPCancelDuration := GetRandomInteger(Min, Max);
 
-   // create a list with all acked CPs
-   CPListAcked := TStringList.Create;
+  //init CP list holds all actived Callpoints
+  CPListActive := TStringList.Create;
 
+  // init Event holds all actived Events
+  EventListActive := TStringList.Create;
 
-
+  Command.EnableTimer(1000);
 
 end;
+
+
+
+procedure MyScript;
+
+var selected_event: string;
+var loop: integer;
+var current_code: integer;
+
+begin
+    for loop := 0 to CPListActive.count do
+        begin
+            // apply probability function
+            current_code := get_DevActivity(CPListActive.Strings[loop]);
+            Command.SendToLog(current_code);
+            if current_code < 999 then   // since 1000 is do nothing
+            begin
+                Command.SendDevNotifyStatusToServer(EventListActive.Strings[loop],
+                devId, devType, devLabel, current_code, '');
+            end;
+
+        end;
+
+end;
+
+
 
 
 procedure FinalizeScript;
@@ -195,96 +264,82 @@ begin
 end;
 
 
-function HandleDevNotify (ExtractedNativeDevID, EvtType, EventID, DevInfo, CpInfo);
 
+// helper function; check if given string is in the
+function check_contains(Text:String; List: TStringList):integer;
+var check_int:integer;
 begin
+    check_int := List.IndexOf(Text);
+    //Command.SendToLog(check_int);
+    Result := check_int;
+end;
 
 
 
-//Begin Script
-    Command.SendToLog (Format ('Received callpoint notify event. EvtType:%s / EventID:%s / DevInfo:%s / CpInfo:%s',
-        [EvtType, EventID, DevInfo, CpInfo]));
 
+function HandleDevNotify (ExtractedNativeDevID, EvtType, EventID, DevInfo, CpInfo, BinaryType, BinaryInfo, BinaryData);
+var Index;
+begin
+    Result := True;
+    //Command.SendToLog (Format ('Received callpoint notify event. EvtType:%s / EventID:%s / DevInfo:%s / CpInfo:%s',
+        //[EvtType, EventID, DevInfo, CpInfo]));
+
+    // keep updating my device infos (do i need to do this?)
     devId := Command.GetRxDataParamInteger ('[DEV_ID=', DevInfo, 0);
     devType := Command.GetRxDataParamInteger ('[TYPE=', DevInfo, 0);
     devLabel := Command.GetRxDataParamString ('[LABEL=', DevInfo, '<DEV LABEL NOT FOUND>');
 
+    CPLevel := Command.GetRxDataParamInteger ('[LEVEL=', CpInfo, 0);
+    CPOptions := Command.GetRxDataParamString ('[OPTIONS=', CpInfo, 0);
+
+    // if an event is a trigger:
+    //Command.SendToLog('Received Event Type ' + EvtType);
+    //Command.SendToLog(check_contains(EventID, EventListActive));
     if EvtType = 'ACTIVE' then
-
         begin
-
-            // my idea is different here.  so I will make this commanded out.
-            Command.SendToLog('Received Active Event type');
-
-            // since you made a probably of NOT trigger the alarm, so this made a
-            // conflict with my code below .
-
-            // ALSO note there is a bug in my code here:
-            // If callpoint is a re-try or escalation, is will add duplicate callpoints
-            // in the list, so leave this here for now, I need a if statement ...
-
-            //CPListActive.Append(CpInfo);
-            //EventListActive.Append(EventID);
-
-
-            randomNumber := Command.GetRandomInteger(0,101);
-            temporary := countIf(randomNumber) + 1;
-            devAction := codes[temporary - 1];
-            if devAction <> 1000 then
+            //Command.SendToLog('Received Active Event type');
+            if check_contains(EventID, EventListActive) = -1 then
                 begin
-                Command.SendDevNotifyStatusToServer (EventID,
-                                           devId,
-                                           devType,
-                                           devLabel,
-                                           devAction,
-                                           '');
+                Command.SendToLog('Append!');
+                CPListActive.Append(CpInfo);
+                EventListActive.Append(EventID);
+                end;
+            else
+                begin
+                    // if found in the list, update callpoint information
+                    //Command.SendToLog('update');
+                    CPListActive.Strings[EventListActive.Indexof(EventID)] := CpInfo;
+                    EventListActive.Strings[EventListActive.Indexof(EventID)] := EventID;
                 end;
         end;
 
+    // or if an event is a cancel
     else if EvtType = 'CANCEL' then
         begin
-            Command.SendToLog('Received Cancel Event type');
+            //Command.SendToLog('Received Cancel Event type');
+            //Command.SendToLog(check_contains(EventID, EventListActive));
+            if check_contains(EventID, EventListActive) > -1 then
+                begin
+                //Command.SendToLog('Cancel!');
+                CPListActive.Delete(check_contains(EventID, EventListActive));
+                EventListActive.Delete(check_contains(EventID, EventListActive));
 
-            // command out for now due to potential bug
-            //Index := EventListActive.Indexof(EventID);
-            //CPListActive.Delete(Index);
+                end;
         end;
-
-
-
-
-
-  //Note: HandleDevNotify is a function, so a True/False "return value" should be specified to signify the success/failure to process the notification.
-    //Result := False; //the client will send a device status message to the server of "Host Offline" (i.e. status code = -3)
-    Result := True; //the client will send a device status message to the server of "Host Accepted Message" (i.e. status code = 10)
-
-  //Option to enable/disable the HandleDevNotify messages for optional flow control (enabled by default)
-    {Parameter list:
-      - enable/disable messages (True/False)}
-    //Command.ReadyForDevNotifyEvents (False);
-    Command.ReadyForDevNotifyEvents (True);
-
-  //Option to enable/disable the processing of HandleDevNotify messages (and Timer) events even when the host interface is offline (disabled by default)
-    {Parameter list:
-      - enable/disable script operation when host offline (True/False)}
-   //Command.RunWhileHostOffline (True);
-    Command.RunWhileHostOffline (False);
-
-
+    //Command.SendToLog(EventListActive.Text);
+    //Command.SendToLog(CPListActive.Text);
 end;
 
 
-procedure HandleRtlsTagLocationChange (TagID: integer; TagLabel: string; TagNativeID: string;
-  RTLSID: integer; NewLocID, NewLocLabel, PrevLocID, PrevLocLabel: string; PrevLocEntryTime: TDateTime);
-begin
-  // Implement code that can process RTLS tag location change events
-end;
+
 
 
 procedure TimerEvent;
 begin
   //Implement code that must be called on a regular basis (for state machines, etc.)
   //Note: refer to Command.EnableTimer, Command.DisableTimer and Command.RunWhileHostOffline procedures to enable/disable timer events.
+  MyScript();
+
 end;
 
 

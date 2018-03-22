@@ -1,7 +1,14 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 uses SysUtils,
 Classes;
 =======
+=======
+
+uses
+    SysUtils,
+    Classes;
+>>>>>>> bcfa5da196226b3f19c0dc0e6444fc0e76b6a27c
 
 uses
     SysUtils,
@@ -29,12 +36,15 @@ const
     sizeOfList = 7;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     //probability for action
     actionCode = [1, //do something
                   2]; //not do anything
     probabilityForActionHigh = [95.0,5.0];
     probabilityForActionLow = [5.0,95.0];
 =======
+=======
+>>>>>>> bcfa5da196226b3f19c0dc0e6444fc0e76b6a27c
 
     // 1. Priority 0 ~ 10: 50% +- 10% ACK;
     // 2. Priority 11 ~ 20: 40% +- 10% ACK;
@@ -59,6 +69,9 @@ const
 
     Probability_list = [Prob1, Prob2, Prob3, Prob4, Prob5,
                         Prob6, Prob7, Prob8, Prob9]
+<<<<<<< HEAD
+>>>>>>> bcfa5da196226b3f19c0dc0e6444fc0e76b6a27c
+=======
 >>>>>>> bcfa5da196226b3f19c0dc0e6444fc0e76b6a27c
 
 //test line
@@ -175,11 +188,19 @@ begin
     //apply the above probability, determine if we ack this callpoint or not..
     Random_number := Command.GetRandomInteger(0, 100);
     if Random_number < Random_AckProb then
+<<<<<<< HEAD
         begin
         Result := 1;
         end;
     else
         begin
+=======
+        begin
+        Result := 1;
+        end;
+    else
+        begin
+>>>>>>> bcfa5da196226b3f19c0dc0e6444fc0e76b6a27c
         // Callpoint will not ack at this time, apply other device activities
         // apply 50% of do nothing
         Random_number := Command.GetRandomInteger(0, 100);
@@ -201,6 +222,7 @@ end;
     CPListActive : TStringList;
     DevInfoList : TStringList;
     CounterList : TStringList;
+
 
 
 procedure addProbability;
@@ -242,6 +264,7 @@ begin
   //Implement any required initialization code here that should be executed when the script is first run.
   //Example: preset variables, start the timer, etc.
 <<<<<<< HEAD
+<<<<<<< HEAD
    cumulativeProb := [0.0,0.0,0.0,0.0,0.0,0.0,0.0];
    tempCumulativeProb := [0.0,0.0];
    addProbability;
@@ -270,10 +293,14 @@ begin
     Result:= tempEvtVal;
 =======
 
+=======
+
+>>>>>>> bcfa5da196226b3f19c0dc0e6444fc0e76b6a27c
   //CPCancelDuration := GetRandomInteger(Min, Max);
 
   //init CP list holds all actived Callpoints
   CPListActive := TStringList.Create;
+<<<<<<< HEAD
 
   // init Event holds all actived Events
   EventListActive := TStringList.Create;
@@ -331,6 +358,39 @@ begin
                 Command.SendDevNotifyStatusToServer(EventListActive.Strings[loop],
                 devId, devType, devLabel, current_code, '');
             end;
+=======
+
+  // init Event holds all actived Events
+  EventListActive := TStringList.Create;
+
+  Command.EnableTimer(1000);
+
+end;
+>>>>>>> bcfa5da196226b3f19c0dc0e6444fc0e76b6a27c
+
+        end;
+
+<<<<<<< HEAD
+>>>>>>> bcfa5da196226b3f19c0dc0e6444fc0e76b6a27c
+=======
+
+procedure MyScript;
+
+var selected_event: string;
+var loop: integer;
+var current_code: integer;
+
+begin
+    for loop := 0 to CPListActive.count do
+        begin
+            // apply probability function
+            current_code := get_DevActivity(CPListActive.Strings[loop]);
+            Command.SendToLog(current_code);
+            if current_code < 999 then   // since 1000 is do nothing
+            begin
+                Command.SendDevNotifyStatusToServer(EventListActive.Strings[loop],
+                devId, devType, devLabel, current_code, '');
+            end;
 
         end;
 
@@ -348,18 +408,25 @@ end;
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 function HandleDevNotify (ExtractedNativeDevID, EvtType, EventID, DevInfo, CpInfo);
 =======
+=======
+>>>>>>> bcfa5da196226b3f19c0dc0e6444fc0e76b6a27c
 
 // helper function; check if given string is in the
 function check_contains(Text:String; List: TStringList):integer;
 var check_int:integer;
+<<<<<<< HEAD
+>>>>>>> bcfa5da196226b3f19c0dc0e6444fc0e76b6a27c
+=======
 >>>>>>> bcfa5da196226b3f19c0dc0e6444fc0e76b6a27c
 begin
     check_int := List.IndexOf(Text);
     //Command.SendToLog(check_int);
     Result := check_int;
 end;
+<<<<<<< HEAD
 
 
 <<<<<<< HEAD
@@ -403,6 +470,32 @@ begin
     //Command.SendToLog(check_contains(EventID, EventListActive));
     if EvtType = 'ACTIVE' then
         begin
+=======
+
+
+
+
+function HandleDevNotify (ExtractedNativeDevID, EvtType, EventID, DevInfo, CpInfo, BinaryType, BinaryInfo, BinaryData);
+var Index;
+begin
+    Result := True;
+    //Command.SendToLog (Format ('Received callpoint notify event. EvtType:%s / EventID:%s / DevInfo:%s / CpInfo:%s',
+        //[EvtType, EventID, DevInfo, CpInfo]));
+
+    // keep updating my device infos (do i need to do this?)
+    devId := Command.GetRxDataParamInteger ('[DEV_ID=', DevInfo, 0);
+    devType := Command.GetRxDataParamInteger ('[TYPE=', DevInfo, 0);
+    devLabel := Command.GetRxDataParamString ('[LABEL=', DevInfo, '<DEV LABEL NOT FOUND>');
+
+    CPLevel := Command.GetRxDataParamInteger ('[LEVEL=', CpInfo, 0);
+    CPOptions := Command.GetRxDataParamString ('[OPTIONS=', CpInfo, 0);
+
+    // if an event is a trigger:
+    //Command.SendToLog('Received Event Type ' + EvtType);
+    //Command.SendToLog(check_contains(EventID, EventListActive));
+    if EvtType = 'ACTIVE' then
+        begin
+>>>>>>> bcfa5da196226b3f19c0dc0e6444fc0e76b6a27c
             //Command.SendToLog('Received Active Event type');
             if check_contains(EventID, EventListActive) = -1 then
                 begin
@@ -420,11 +513,15 @@ begin
         end;
 
     // or if an event is a cancel
+<<<<<<< HEAD
+>>>>>>> bcfa5da196226b3f19c0dc0e6444fc0e76b6a27c
+=======
 >>>>>>> bcfa5da196226b3f19c0dc0e6444fc0e76b6a27c
     else if EvtType = 'CANCEL' then
     begin
         if EventListActive.Count > 0 then
         begin
+<<<<<<< HEAD
 <<<<<<< HEAD
             Command.SendToLog('Received Cancel Event type');
             removeFromList(EventID);
@@ -462,12 +559,27 @@ begin
     //Command.SendToLog(EventListActive.Text);
     //Command.SendToLog(CPListActive.Text);
 >>>>>>> bcfa5da196226b3f19c0dc0e6444fc0e76b6a27c
+=======
+            //Command.SendToLog('Received Cancel Event type');
+            //Command.SendToLog(check_contains(EventID, EventListActive));
+            if check_contains(EventID, EventListActive) > -1 then
+                begin
+                //Command.SendToLog('Cancel!');
+                CPListActive.Delete(check_contains(EventID, EventListActive));
+                EventListActive.Delete(check_contains(EventID, EventListActive));
+
+                end;
+        end;
+    //Command.SendToLog(EventListActive.Text);
+    //Command.SendToLog(CPListActive.Text);
+>>>>>>> bcfa5da196226b3f19c0dc0e6444fc0e76b6a27c
 end;
 
 procedure AdditionOfActionProbability(inputCode : Integer);
 begin
     cumulativeTemp := 0.0;
 
+<<<<<<< HEAD
     if inputCode = 1 then
     begin
         for loopCount := 0 to 1 do
@@ -498,6 +610,9 @@ begin
     end
     Result:= tempAns;
 end;
+=======
+
+>>>>>>> bcfa5da196226b3f19c0dc0e6444fc0e76b6a27c
 
 
 
@@ -515,6 +630,7 @@ var
 begin
   //Implement code that must be called on a regular basis (for state machines, etc.)
   //Note: refer to Command.EnableTimer, Command.DisableTimer and Command.RunWhileHostOffline procedures to enable/disable timer events.
+<<<<<<< HEAD
 <<<<<<< HEAD
 
   if EventListActive.Count > 0 then
@@ -555,6 +671,10 @@ begin
           end;
       end;
   end;
+=======
+  MyScript();
+
+>>>>>>> bcfa5da196226b3f19c0dc0e6444fc0e76b6a27c
 =======
   MyScript();
 

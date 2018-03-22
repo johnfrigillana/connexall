@@ -1,0 +1,297 @@
+uses SysUtils,
+Classes;
+
+const
+    interval = 1000;
+    codes = [1,  //   1 = user saw message and terminated ("done")
+             2,  //   2 = user saw message and chose to call audio dn
+             3,  //   3 = user saw message and chose to escalate it
+             4,  //   4 = user responded to notification but has not chosen an option yet ("user aware")
+             5,  //   5 = user chose a custom menu option
+             6,  //  6 = user saw message and chose to cancel it
+             1000]; // 1000 = user did not respond at all
+
+    //probability for what action to do
+    prob = [14.3,  //  Probability that user saw message and terminated ("done")
+            14.3,  //  Probability that user saw message and chose to call audio dn
+            14.3,  //  Probability that user saw message and chose to escalate it
+            14.3,  //  Probability that user responded to notification but has not chosen an option yet ("user aware")
+            14.3,  //  Probability that user chose a custom menu option
+            14.3,   //  Probability that user saw message and chose to cancel it
+            14.2]; //   Probability that did not respond at all
+    sizeOfList = 7;
+
+    //probability for action
+    actionCode = [1, //do something
+                  2]; //not do anything
+    probabilityForActionHigh = [95.0,5.0];
+    probabilityForActionLow = [5.0,95.0];
+
+//test line
+var
+    devId,
+    devType,
+    devLabel;
+    cumulativeProb,
+    tempCumulativeProb,
+    devAction,
+    globalEventId;
+
+    //List of Needed Info
+    EventListActive : TStringList;
+    CPListActive : TStringList;
+    DevInfoList : TStringList;
+    CounterList : TStringList;
+
+procedure addProbability;
+begin
+    cumProbTemp := 0.0;
+    arraySize := sizeOfList - 1;
+    for loopCount := 0 to arraySize do
+    begin
+       cumProbTemp := cumProbTemp + prob[loopCount];
+       cumulativeProb[loopCount] := cumProbTemp;
+    end;
+end;
+
+function countIf(number : Integer): Integer;
+begin
+    tempAns := 0;
+    arraySize := sizeOfList - 1;
+    for loopCount := 0 to arraySize do
+    begin
+       if cumulativeProb[loopCount] <= number then
+       begin
+           tempAns := tempAns + 1
+       end;
+    end;
+    Result:= tempAns;
+end;
+
+function HandleNewPacket (RxData);
+begin
+  //Implement code to parse/process incoming data from host system.
+
+  Command.SendToLog ('Got raw data: ' + RxData);
+end;
+
+
+
+procedure InitializeScript;
+
+begin
+  //Implement any required initialization code here that should be executed when the script is first run.
+  //Example: preset variables, start the timer, etc.
+   cumulativeProb := [0.0,0.0,0.0,0.0,0.0,0.0,0.0];
+   tempCumulativeProb := [0.0,0.0];
+   addProbability;
+
+   CPListActive := TStringList.Create;
+   EventListActive := TStringList.Create;
+   DevInfoList := TStringList.Create;
+   CounterList := TStringList.Create;
+   Command.EnableTimer(1000);
+end;
+
+function checkIfEvtExist;
+var
+    Loop,
+    tempEvtVal;
+begin
+    tempEvtVal:=0;
+    For Loop := 0 to EventListActive.Count - 1 do
+    begin
+        if globalEventId = EventListActive.Strings[Loop] then
+        begin
+            tempEvtVal:= 1;
+            Command.SendToLog('Evt Exist already');
+        end;
+    end;
+    Result:= tempEvtVal;
+end;
+
+procedure removeFromList(inputEvtId);
+begin
+   Index := EventListActive.Indexof(inputEvtId);
+   EventListActive.Delete(Index);
+   CPListActive.Delete(Index);
+   DevInfoList.Delete(Index);
+   CounterList.Delete(Index);
+end;
+
+procedure doSomething(inputEvt,inputdevId,inputdevType,inputdevLabel : String);
+begin
+    randomNumber := Command.GetRandomInteger(0,101);
+    temporary := countIf(randomNumber) + 1;
+    devAction := codes[temporary - 1];
+    Command.SendToLog(IntToStr(devAction));
+    if devAction <> 1000 then
+    begin
+    Command.SendDevNotifyStatusToServer (inputEvt,
+                                         inputdevId,
+                                         inputdevType,
+                                         inputdevLabel,
+                                         devAction,
+                                         '');
+    end;
+    //if (devAction <> 4) OR (devAction <> 1000) then
+    //begin
+    removeFromList(inputEvt);
+    //end;
+end;
+
+
+procedure FinalizeScript;
+begin
+  //Implement any required finalization code here that should be executed when the script stops running.
+  //Example: clean memory, free objects, etc.
+end;
+
+
+function HandleDevNotify (ExtractedNativeDevID, EvtType, EventID, DevInfo, CpInfo);
+begin
+
+//Begin Script
+    Command.SendToLog (Format ('Received callpoint notify event. EvtType:%s / EventID:%s / DevInfo:%s / CpInfo:%s',
+        [EvtType, EventID, DevInfo, CpInfo]));
+
+
+    globalEventId := EventID;    
+
+    if EvtType = 'ACTIVE' then
+    begin
+        if checkIfEvtExist = 0 then
+        begin
+           CPListActive.Append(CpInfo);
+           DevInfoList.Append(DevInfo);
+           EventListActive.Append(EventID);
+           CounterList.Append('0');
+        end;
+    end;
+    else if EvtType = 'CANCEL' then
+    begin
+        if EventListActive.Count > 0 then
+        begin
+            Command.SendToLog('Received Cancel Event type');
+            removeFromList(EventID);
+        end;
+    end;
+
+  //Note: HandleDevNotify is a function, so a True/False "return value" should be specified to signify the success/failure to process the notification.
+    //Result := False; //the client will send a device status message to the server of "Host Offline" (i.e. status code = -3)
+    Result := True; //the client will send a device status message to the server of "Host Accepted Message" (i.e. status code = 10)
+
+  //Option to enable/disable the HandleDevNotify messages for optional flow control (enabled by default)
+    {Parameter list:
+      - enable/disable messages (True/False)}
+    //Command.ReadyForDevNotifyEvents (False);
+    Command.ReadyForDevNotifyEvents (True);
+
+  //Option to enable/disable the processing of HandleDevNotify messages (and Timer) events even when the host interface is offline (disabled by default)
+    {Parameter list:
+      - enable/disable script operation when host offline (True/False)}
+   //Command.RunWhileHostOffline (True);
+    Command.RunWhileHostOffline (False);
+
+
+end;
+
+procedure AdditionOfActionProbability(inputCode : Integer);
+begin
+    cumulativeTemp := 0.0;
+
+    if inputCode = 1 then
+    begin
+        for loopCount := 0 to 1 do
+        begin
+           cumulativeTemp := cumulativeTemp + probabilityForActionHigh[loopCount];
+           tempCumulativeProb[loopCount] := cumulativeTemp;
+        end;
+    end;
+    else if inputCode = 2 then
+    begin
+        for loopCount := 0 to 1 do
+        begin
+           cumulativeTemp := cumulativeTemp + probabilityForActionLow[loopCount];
+           tempCumulativeProb[loopCount] := cumulativeTemp;
+        end;
+    end;
+end;
+
+function temporaryCountIf(randomNumberInput : Integer): Integer;
+begin
+    tempAns := 0;
+    for loopCount := 0 to 1 do
+    begin
+       if tempCumulativeProb[loopCount] <= randomNumberInput then
+       begin
+           tempAns := tempAns + 1 ;
+       end;
+    end
+    Result:= tempAns;
+end;
+
+procedure HandleRtlsTagLocationChange (TagID: integer; TagLabel: string; TagNativeID: string;
+  RTLSID: integer; NewLocID, NewLocLabel, PrevLocID, PrevLocLabel: string; PrevLocEntryTime: TDateTime);
+begin
+  // Implement code that can process RTLS tag location change events
+end;
+
+
+procedure TimerEvent;
+var
+    tempdevId,
+    tempdevType,
+    tempdevLabel,
+    tempcpPriority,
+    tempVal, //timer value of current event
+    tempActionFlag, //To know which to use. probabilityForActionHigh or probabilityForActionLow
+    tempActionCode
+    tempAverageRespondTime;
+begin
+  //Implement code that must be called on a regular basis (for state machines, etc.)
+  //Note: refer to Command.EnableTimer, Command.DisableTimer and Command.RunWhileHostOffline procedures to enable/disable timer events.
+
+  if EventListActive.Count > 0 then
+  begin
+      For i := 0 to EventListActive.Count - 1 do
+      begin
+          tempdevId := Command.GetRxDataParamInteger ('[DEV_ID=', DevInfoList.Strings[i] , 0);
+          tempdevType := Command.GetRxDataParamInteger ('[TYPE=', DevInfoList.Strings[i] , 0);
+          tempdevLabel := Command.GetRxDataParamString ('[LABEL=', DevInfoList.Strings[i] , '<DEV LABEL NOT FOUND>');
+          tempcpPriority :=  Command.GetRxDataParamInteger('[PRIORITY=', CPListActive.Strings[i],0);
+          tempVal := strtoint(CounterList.Strings[i]) + 1;
+          tempAverageRespondTime := Command.GetRxDataParamInteger ('[NATIVE_ID=[ACTIVE_CMD=', DevInfoList.Strings[i] , 0);
+          CounterList.Strings[i] := IntToStr(tempVal);
+          Command.SendToLog(CounterList.Strings[i]);
+
+          //Timer helping to determine whether which probability set to use
+          if tempVal >= tempAverageRespondTime then
+          begin
+              tempActionFlag := 1; //Use High Chance of Action probability
+          end;
+          else
+          begin
+              tempActionFlag := 2; //Use Low Chance of Action probability
+          end;
+
+          //Determine Whether to do something or not
+          AdditionOfActionProbability(tempActionFlag);
+          Command.SendToLog(FloatToStr(tempCumulativeProb[0]));
+          randomNumber := Command.GetRandomInteger(0,101);
+          Command.SendToLog(IntToStr(randomNumber));
+          temporary := temporaryCountIf(randomNumber) + 1;
+          tempActionCode := actionCode[temporary - 1];
+
+          //Check whether to do something or not
+          if tempActionCode = 1 then
+          begin
+              doSomething(EventListActive.Strings[i],tempdevId,tempdevType,tempdevLabel);
+          end;
+      end;
+  end;
+end;
+
+
+
+
